@@ -8,11 +8,13 @@ public class Enemy {
 	private float width,height;
 	private float angle;
 	private float speed;
+	
 	private long lastHit;
-	public int myType;
-	public boolean alive = false;
-	//private boolean dontMove = false;
 	private long knockBack;
+	
+	public int myType;
+	
+	public boolean alive = false;
 	
 	public Enemy(int type){
 		lastHit = 0;
@@ -23,17 +25,19 @@ public class Enemy {
 		height = 0;
 		speed = 1;
 		alive = false;
-
 		myType = type;
 	}
-	public int myType(){
-		return myType;
-	}
+	//Basic set function
 	public void setWidth(float width){
 		this.width = width;
 	}
 	public void setHeight(float height){
 		this.height = height;
+	}
+	
+	//Basic return functions
+	public int myType(){
+		return myType;
 	}
 	public float getX(){
 		return x;
@@ -47,10 +51,25 @@ public class Enemy {
 	public float getHeight(){
 		return height;
 	}
+	public boolean alive(){
+		return alive;
+	}
+	public float returnAngle(){
+		return angle;
+	}
+	public float rMapX(){
+		return mapX;
+	}
+	public float rMapY(){
+		return mapY;
+	}
+	
+	//Set timing of last hit so they do not constantly attack
 	public void giveHit(){
 		lastHit = System.nanoTime();
 	}
 
+	//Check to make sure enough time has passed before making an attack
 	public boolean canHit(){
 		if(System.nanoTime() - lastHit > 150000000L){
 			return true;
@@ -59,10 +78,11 @@ public class Enemy {
 			return false;
 		}
 	}
+	
+	//Shift functions
 	public void shiftVertical(boolean up, int moveSpeed){
 			if(up){
 				y -= moveSpeed;
-				
 			}
 			else{
 				y += moveSpeed;
@@ -84,50 +104,35 @@ public class Enemy {
 		y += degree * moveSpeed;
 	}
 	
-	public boolean alive(){
-		return alive;
-	}
-	public float returnAngle(){
-		return angle;
-	}
-	public float rMapX(){
-		return mapX;
-	}
-	public float rMapY(){
-		return mapY;
-	}
-	
-	
+	//Spawn procedure
 	public void spawn(float mapX, float mapY, float width, float height, int zone){
 
 		int random;
 		float randomX,randomY;
+		
+		//Zone is where player currently is
+		//This loop makes sure the enemy does not spawn where the player is
 		do{
 			random = (int) (Math.random()*4 + 1);
 		}while(random == zone);
+		
 		randomX = (float) (Math.random()*150);
 		randomY = (float) (Math.random()*150);
 		if(random == 1){
 			x = (float) (mapX + 200 + randomX);
 			y = (float) (mapY + height - 200 - randomY);
-			
-			
 		}
 		else if(random == 2){
 			x = (float) (mapX + width - 200 - randomX) ;
 			y = (float) (mapY + height - 200 - randomY);
-			
-			
 		}
 		else if(random == 3){
 			x = (float) (mapX + width - 200 - randomX);
-			y = (float) (mapY + 200 + randomY);
-			
+			y = (float) (mapY + 200 + randomY);	
 		}
 		else if(random == 4){
 			x = (float)(mapX + 200 + randomX);
 			y = (float)(mapY + 200 + randomY);
-			
 		}
 		this.mapX = width - (x- mapX);
 		this.mapY = height - (y- mapY);
@@ -135,6 +140,8 @@ public class Enemy {
 
 		calculateAngle(width/2,height/2);
 	}
+	
+	//Update full enemy 
 	public void update(int width, int height){
 		calculateAngle(width/2,height/2);
 		float testX,testY;
@@ -146,10 +153,11 @@ public class Enemy {
 			y += speed*(Math.sin(angle*Math.PI/180));
 			mapX -= speed*(Math.cos(angle*Math.PI/180));
 			mapY -= speed*(Math.sin(angle*Math.PI/180));
-		}
-		
-		
+		}	
 	}
+	
+	//Update just x component of enemy
+	//incase enemy is not able to move vertically
 	public void updateX(int width, int height){
 		calculateAngle(width/2,height/2);
 		float testX,testY;
@@ -161,6 +169,9 @@ public class Enemy {
 			mapX -= speed*(Math.cos(angle*Math.PI/180));
 		}
 	}
+	
+	//Update just y component of enemy
+	//incase enemy is not able to move horizontally
 	public void updateY(int width, int height){
 		calculateAngle(width/2,height/2);
 		float testX,testY;
@@ -171,15 +182,16 @@ public class Enemy {
 			y += speed*(Math.sin(angle*Math.PI/180));
 			mapY -= speed*(Math.sin(angle*Math.PI/180));
 		}
-		
-		
 	}
+	
 	public float fakeX(){
 		return (float) (mapX - speed*(Math.cos(angle*Math.PI/180)));
 	}
 	public float fakeY(){
 		return (float) (mapY - speed*(Math.sin(angle*Math.PI/180)));
 	}
+	
+	
 	public void calculateAngle(float centerX, float centerY){
 		if( x != centerX){
 			angle = (float) (Math.atan2((centerY - y),( centerX -x )) / (Math.PI / 180));
@@ -207,6 +219,4 @@ public class Enemy {
 			return false;
 		}
 	}
-
-	
 }

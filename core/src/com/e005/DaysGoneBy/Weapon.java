@@ -11,6 +11,7 @@ public class Weapon {
 		name = null;
 	}
 	
+	//Basic set functions
 	public void setClip(int clip){
 		clipSize = clip;
 	}
@@ -28,6 +29,7 @@ public class Weapon {
 		this.sY = y;
 	}
 	
+	//Basic return functions
 	public float shootX(){
 		return sX;
 	}
@@ -46,7 +48,7 @@ public class Weapon {
 	public int getShotCoolDown(){
 		return shotCoolDown;
 	}
-	
+
 	public Weapon(Weapon copy){
 		this.name = copy.name;
 		this.clipSize = copy.clipSize;

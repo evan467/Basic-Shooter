@@ -19,14 +19,13 @@ public class ThumbStick {
 		thumbX = 0;
 		thumbY = 0;
 		maxDif = 0;
-
 	}
 	
+	//Calculates how far the thumbstick has deviated from the center
 	private void calcDif(){
 		maxDif = this.getSpriteBase().getWidth()/2 + this.getSpriteThumb().getWidth()/2;
 		difX = (centerX - thumbX)/maxDif;
 		difY = (centerY - thumbY)/maxDif;
-		
 	} 
 	
 	public void setCenter(int x, int y){
@@ -36,6 +35,7 @@ public class ThumbStick {
 		thumbY = y;
 	}
 
+	//Basic return functions
 	public float getDifX(){
 		return difX;
 	}
@@ -44,6 +44,21 @@ public class ThumbStick {
 	}
 	public float getMaxDif(){
 		return maxDif;
+	}
+	public float getCenterX(){
+		return centerX;
+	}
+	public float getCenterY(){
+		return centerY;
+	}
+	public float getThumbX(){
+		return thumbX;
+	}
+	public float getThumbY(){
+		return thumbY;
+	}
+	public float getTRadius(){
+		return tRadius;
 	}
 	
 	public void setSpriteThumb(Sprite sprite, float width){
@@ -64,23 +79,7 @@ public class ThumbStick {
 		hold = false;
 	}
 	
-	public float getCenterX(){
-		return centerX;
-	}
-	public float getCenterY(){
-		return centerY;
-	}
-	
-	public float getThumbX(){
-		return thumbX;
-	}
-	public float getThumbY(){
-		return thumbY;
-	}
-	public float getTRadius(){
-		return tRadius;
-	}
-	
+	//Basic set functions
 	public void setThumbX(int x){
 			thumbX = x;
 	}
@@ -88,7 +87,7 @@ public class ThumbStick {
 			thumbY = y;
 	}
 	public void setThumb(int x, int y){
-		
+		//Calculate if the players touch has moved off the valid thumbstick area
 		if(Math.sqrt(Math.pow(x - getCenterX() ,2) + Math.pow((y - getCenterY()),2)) > (getSpriteBase().getWidth()/2) + getSpriteThumb().getWidth()/2){
 			off = true;
 		}

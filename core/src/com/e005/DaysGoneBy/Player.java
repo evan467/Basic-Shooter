@@ -6,29 +6,29 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 
 public class Player {
 	public static final int MAX_WEAPONS = 4;
+	
 	public float rotation;
 	
 	private float positionX, positionY;
 	private float centerX, centerY;
 	private float mapX,mapY;
 	private float shootX, shootY;
+	
 	private int health = 100;
 	
+	public int selectedItem = 0;
 	
 	public Weapon[] weaponArray = new Weapon[MAX_WEAPONS];
 	public int[] weaponAmmo = new int[MAX_WEAPONS];
 	
-	public int selectedItem = 0;
 	public Weapon currentWeapon = new Weapon();
 	
 	
 	public Player(){
 		
-		
 		shootX = 0;
 		shootY = 0;
 			
-		
 		health=100;
 		selectedItem = 0;
 		rotation = 0;
@@ -67,26 +67,17 @@ public class Player {
         currentWeapon = weaponArray[selectedItem];
 	}
 
+	//Set the rotation the player makes whenever they fire
 	public void setRotation(float rotation){
 		this.rotation = rotation;
 		shootX = (float) (shootX*Math.cos(rotation) - shootY*Math.sin(rotation));
 		shootY = (float) (shootY*Math.cos(rotation) + shootX*Math.sin(rotation));
 	}
+	
+	//Basic return functions
 	public float getRotation(){
 		return rotation;
 	}
-	
-	
-	public void setPosition(float x, float y){
-		positionX = x;
-		positionY = y;
-	}
-	public void setCenter(float x, float y){
-		centerX = x;
-		centerY = y;
-		setShoot(x,y);
-	}
-	
 	public float getX(){
 		return mapX;
 	}
@@ -99,16 +90,31 @@ public class Player {
 	public float getShootY(){
 		return shootY;
 	}
+	public Weapon returnWeapon(){
+		return currentWeapon;
+	}
+	
+	//Basic set functions
+	public void setPosition(float x, float y){
+		positionX = x;
+		positionY = y;
+	}
+	public void setCenter(float x, float y){
+		centerX = x;
+		centerY = y;
+		setShoot(x,y);
+	}
 	public void setShoot(float x, float y){
 		shootX = x;
 		shootY = y;
-		
 	}
 	public void setMap(float x, float y){
 		mapX = x;
 		mapY = y;
 		//havent set yet
 	}
+	
+	//Shift functions
 	public void shiftX(float deg, float moveSpeed){
 		mapX += deg * moveSpeed;
 	}
@@ -116,6 +122,7 @@ public class Player {
 		mapY += deg*moveSpeed;
 	}
 	
+	//Health functions
 	public void setHP(int hp){
 		health = hp;
 	}
@@ -129,6 +136,7 @@ public class Player {
 		return health;
 	}
 	
+	//Item functions
 	public int getItem(){
 		return selectedItem;
 	}
@@ -146,10 +154,8 @@ public class Player {
 		}
 		currentWeapon = weaponArray[selectedItem];
 	}
-	public Weapon returnWeapon(){
-		return currentWeapon;
-	}
 
+	//Player reset
 	public void reset(){
 		health=100;
 		selectedItem = 0;

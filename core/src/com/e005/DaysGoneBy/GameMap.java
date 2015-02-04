@@ -22,6 +22,7 @@ public class GameMap {
 				checkSpace[i][r] = 1;
 			}
 		}
+		
 		//Top Boards/Exits
 		for(int i = 360; i <720; i++){
 			for(int r = 0; r < 100; r++)
@@ -37,7 +38,6 @@ public class GameMap {
 			for(int r = 1300; r < 1600; r++)
 				checkSpace[i][r] = 1;
 		}
-		
 		
 		//Columns 
 		for(int i = 400; i < 450; i++){
@@ -60,14 +60,15 @@ public class GameMap {
 				 checkSpace[i][r] = 1;
 		 	}
 		 }
-		 
-		 
 	}
+	
 	public void setStartMapPosition(float x, float y){
 		mapSprite.setPosition(x, y);
 		drawX = x;
 		drawY = y;
 	}
+	
+	//Shift functions
 	public void shiftMapX(float deg, float move){
 		mapSprite.translateX(deg*move);
 		drawX += deg*move;
@@ -76,8 +77,8 @@ public class GameMap {
 		mapSprite.translateY(deg*move);
 		drawY += deg*move;
 	}
+	
 	public boolean outOfBounds(float x, float y, float width, float height){
-
 		if(x < mapSprite.getX() || x + width > mapSprite.getX() + mapSprite.getWidth() ||  y < mapSprite.getY() || y + height > mapSprite.getY() + mapSprite.getHeight()){
 			return true;
 		}
@@ -85,9 +86,11 @@ public class GameMap {
 			return false;
 		}
 	}
+	
+	//Check the to make sure the next movement is valid
 	public boolean nextStepCheck(float x, float y, float width, float height){
 		boolean check = false;
-	
+
 		if(x - width < 0 || x  > mapSprite.getWidth() ||  y - height < 0 || y  > mapSprite.getHeight()){
 			return false;
 		}

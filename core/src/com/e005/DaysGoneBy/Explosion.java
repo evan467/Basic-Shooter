@@ -24,6 +24,7 @@ public class Explosion {
 		this.exists = true;
 		this.nextExplosionSprite = 0;
 	}
+	
 	public void continueExplode(boolean shortStop, float radius){
 		if(this.fullTime <= System.nanoTime() || shortStop == true ){
 			this.exists = false;
@@ -37,6 +38,8 @@ public class Explosion {
 		this.radius = radius;
 		
 	}
+	
+	//Shift functions
 	public void shiftHorizontal(float degree, int moveSpeed){
 		startX += degree * moveSpeed;
 	}
@@ -44,6 +47,7 @@ public class Explosion {
 		startY += degree * moveSpeed;
 	}
 	
+	//Basic return functions
 	public float getX(){
 		return startX;
 	}

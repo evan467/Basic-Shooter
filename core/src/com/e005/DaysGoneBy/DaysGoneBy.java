@@ -1,6 +1,5 @@
 package com.e005.DaysGoneBy;
 
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,7 +17,6 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.input.GestureDetector.GestureListener;
 import com.badlogic.gdx.math.Vector2;
 
-
 public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureListener {
 	private double version = 0.66;
 	
@@ -29,63 +27,127 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 	public static final int MAX_EXPLOSION = 5;
 	public static final int MAX_DEAD = 50;
 	
-	private boolean firstIn;
+	//Class for all touch input information 
+	class TouchInfo{
+    	public float touchX = 0;
+    	public float touchY = 0;
+    	public float startX,startY = 0;
+    	public float disX,disY;
+    	public boolean touched = false;
+    	public boolean dragged = false;
+    	public long touchedStart;
+    	public int purpose = 0;
+    	//CODE, 0 = nothing/default, 1 = control1, 2 = control2, 3 = select, 4 =swipeWeapon, 5 = swipeReload, 6 = machineFire, 7 = rbutton, 8 = leftWB, 9 = rightWB
+    	
+    	//Distance calculators for X and Y
+    	public float getDisX(){
+    		disX = touchX - startX;
+    		return disX;
+    	}
+    	public float getDisY(){
+    		disY = touchY - startY;
+    		return disY;
+    	}
+    	
+    	//Distance Formula for total distance 
+    	public float getDis(){
+    		float dis = (float) Math.sqrt(Math.pow(getDisX(), 2)+Math.pow(getDisY(), 2));
+    		return dis;
+    	}
+    	
+    	//Calculate how long since touch start
+    	public long touchTime(){
+    		return (System.nanoTime() - touchedStart);
+    	}
+    }
+    
+	//Class for dialog boxes - For story - Not yet used
+    class MessageBox{
+    	public float x,y = 0;
+    	public float width, height = 0;
+    	public String message = null;
+    	public long displayTime = 0;
+    	public long startTime = 0;
+    	public Sprite sprite;
+    	
+    	//Set dialog box message string and display time
+    	public void setMessage(long display, String message){
+    		displayTime = display;
+    		startTime = System.nanoTime();
+    		this.message = message;
+    	}
+    	
+    	//Reset dialog box
+    	public void reset(){
+    		message = null;
+    		displayTime = 0;
+    		startTime = 0;
+    	}
+    }
 	
+	private boolean firstIn;
+	private boolean drawButton;
+    private boolean reload = false;
+    private boolean halfWayReload = false;
+    private boolean start = true;
+    private boolean[][] deadDraw = new boolean[MAX_DEAD][4];
+    
     private SpriteBatch batch;
     private BitmapFont font,font2,font3;
 
-    
+    private int moveSpeed;
     private int maxEnemy;
     private int drawSize;
-    private boolean drawButton;
-    
     private int width,height;
+    private int menuChoice = 0;
+    private int currentShotCount = 0;
+    private int currentShotCoolDown = 0;
+    private int currentReloadCoolDown = 0;
+    private int kills = 0;  
+    private int halfWayWeapon = 0;
+    private int deadDrawCount = 0;
+    private int drawChoice,buttonChoice,enemyChoice = 0;
+    private int currentClip = MAX_PISTOL_CLIP;
+    private int[] weaponClip = new int [4];
     
+    private long halfWayRResetS;
+    private long halfWayWResetS;
     
     private Texture arrowTexture,sideArrowTexture;
+    private Texture menuButtonTexture;
     private Texture bulletTexture;
-    private Texture[] enemyTexture = new Texture[4];
     private Texture healthBarTexture;
     private Texture healthbarFull;
-    private Texture menuButtonTexture;
-    private Texture[] deadEnemyTexture = new Texture[4];
-  
     private Texture ammoBoxTexture;
-    
-    private Texture[] explosionTexture = new Texture[3];
-    private Texture[] menuWritingTexture = new Texture[5];
-    
     private Texture thumbStickBaseTexture;
     private Texture thumbStickTopTexture;
-    
     private Texture messageBoxTexture;
     private Texture backButtonTexture;
     private Texture reloadButtonTexture;
-    
+    private Texture checkBoxTexture;
+    private Texture[] enemyTexture = new Texture[4];
+    private Texture[] deadEnemyTexture = new Texture[4];
+    private Texture[] explosionTexture = new Texture[3];
+    private Texture[] menuWritingTexture = new Texture[5];
     private Texture[] playerTextures = new Texture[5];
     private Texture[] settingMenu = new Texture[11];
-    private Texture checkBoxTexture;
     
+    private Sprite ammoBox;
+    private Sprite thumbStickTop;
+    private Sprite backButtonSprite;
+    private Sprite reloadButtonSprite;
+    private Sprite healthBarSprite;
+    private Sprite healthBarFSprite;
     private Sprite[] checkBoxSprite = new Sprite [3];
     private Sprite[] settingMenuSprite = new Sprite[11];
 	private Sprite[] playerSprite = new Sprite[5];
 	private Sprite[] menuWritingSprite = new Sprite[5];
     private Sprite[] menuSprite = new Sprite[4];
-    
-    private Sprite ammoBox;
-    
     private Sprite[] bulletSprite = new Sprite[MAX_BULLETS];
     private Sprite[] arrowSprite = new Sprite[4];
     private Sprite[] enemySprite = new Sprite[MAX_ENEMIES];
     private Sprite[][] deadEnemySprite = new Sprite[MAX_DEAD][4];
     private Sprite[][] explosionSprite = new Sprite[MAX_EXPLOSION][3];
-    private Sprite thumbStickTop;
-    private Sprite backButtonSprite;
-    private Sprite reloadButtonSprite;
-   
-    
-    private Sprite healthBarSprite;
-    private Sprite healthBarFSprite;
 
     private Player player = new Player();
     
@@ -97,107 +159,22 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
     
     private GameMap gameMap;
     
-    private int currentShotCount = 0;
-    private int currentShotCoolDown = 0;
-    private int currentReloadCoolDown = 0;
-    private int kills = 0;
-    
-    private boolean[][] deadDraw = new boolean[MAX_DEAD][4];
-    private int deadDrawCount = 0;
-    
-    private boolean reload = false;
-    private boolean halfWayReload = false;
-    private int halfWayWeapon = 0;
-    
-    
-    private long halfWayRResetS;
-    private long halfWayWResetS;
-    private int drawChoice,buttonChoice,enemyChoice = 0;
-     
-    
     private ThumbStick thumbRight = new ThumbStick();
-    
-    
-    private int currentClip = MAX_PISTOL_CLIP;
-    private int[] weaponClip = new int [4];
-    private int menuChoice = 0;
-    private boolean start = true;
-    private int moveSpeed;
-  
     
     private GroundItem ammoBoxItem;
     
-    class TouchInfo{
-    	public float touchX = 0;
-    	public float touchY = 0;
-    	public float startX,startY = 0;
-    	public float disX,disY;
-    	public boolean touched = false;
-    	public boolean dragged = false;
-    	public long touchedStart;
-    	public float getDisX(){
-    		disX = touchX - startX;
-    		return disX;
-    	}
-    	public float getDisY(){
-    		disY = touchY - startY;
-    		return disY;
-    	}
-    	public float getDis(){
-    		float dis = (float) Math.sqrt(Math.pow(getDisX(), 2)+Math.pow(getDisY(), 2));
-    		return dis;
-    	}
-    	
-    	public long touchTime(){
-    		return (System.nanoTime() - touchedStart);
-    	}
-    	public int purpose = 0;
-    	//CODE, 0 = nothing/default, 1 = control1, 2 = control2, 3 = select, 4 =swipeWeapon, 5 = swipeReload, 6 = machineFire, 7 = rbutton, 8 = leftWB, 9 = rightWB
-    	
-    }
-    
-    class MessageBox{
-    	public float x,y = 0;
-    	public float width, height = 0;
-    	public String message = null;
-    	public long displayTime = 0;
-    	public long startTime = 0;
-    	public Sprite sprite;
-    	
-    	public void setMessage(long display, String message){
-    		displayTime = display;
-    		startTime = System.nanoTime();
-    		this.message = message;
-    	}
-    	public void reset(){
-    		message = null;
-    		displayTime = 0;
-    		startTime = 0;
-    	}
-    	
-    }
     private MessageBox messageBox = new MessageBox();
     
     private Map<Integer,TouchInfo> touches = new HashMap<Integer,TouchInfo>();
-    //private boolean availableA; 
-    /*
-    private float accelX;
-    private float accelY;
-    private float accelZ;
-    */
+ 
     private Preferences preferences;
-    /*
-    protected Preferences getPrefs() {
-       if(preferences==null){
-          preferences = Gdx.app.getPreferences(PREFS_NAME);
-       }
-       return preferences;
-    }
-    */
     
+    //Android Preferences functions
+    //Highscore functions
     public int getHighScore(){
     	return preferences.getInteger("HighScore", 0);
     }
+    
     public void setHighScore(int score){
     	int oldHigh = getHighScore();
     	if(oldHigh < score){
@@ -205,12 +182,15 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
     	}
     	preferences.flush();
     }
+    
     public void setSettings(int drawSize, boolean buttonDraw, int maxEnemy){
     	preferences.putInteger("DrawSize", drawSize);
     	preferences.putBoolean("ButtonDraw", buttonDraw);
     	preferences.putInteger("MaxEnemy", maxEnemy);
     	preferences.flush();
     }
+    
+    //Get setting preferences 
     public int getDrawSize(){
     	return preferences.getInteger("DrawSize",1);
     }
@@ -221,16 +201,19 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
     	return preferences.getBoolean("ButtonDraw",true);
     }
     
-    @Override
+
     public void create() {        
     	preferences = Gdx.app.getPreferences("HighScore");
     	width = Gdx.graphics.getWidth();
         height = Gdx.graphics.getHeight();
+        
         font = new BitmapFont();
         font2 = new BitmapFont();
         font3 = new BitmapFont();
+        
         batch = new SpriteBatch();    
         
+        //Set highscore if now have already been set
         setHighScore(0);
         
         font.setColor(Color.RED);
@@ -238,10 +221,14 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
         font3.setColor(Color.RED);
         font2.scale((float) 1.5);
         font3.scale(2);
+        
         maxEnemy = getMaxEnemy();
         drawButton = getButtonDraw();
         drawSize = getDrawSize();
+        
+        //Load textures
         gameMap = new GameMap(new Texture(Gdx.files.internal("Map1.png")));
+        
         playerTextures[4] = new Texture(Gdx.files.internal("Player.png"));
         playerTextures[0] = new Texture(Gdx.files.internal("PlayerPistol.png"));
         playerTextures[1] = new Texture(Gdx.files.internal("PlayerMachine.png"));
@@ -260,17 +247,9 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
         sideArrowTexture = new Texture(Gdx.files.internal("Arrow2.png"));
         thumbStickBaseTexture = new Texture(Gdx.files.internal("ThumbStickBase.png"));
         thumbStickTopTexture = new Texture(Gdx.files.internal("ThumbStickTop.png"));
-        thumbStickTop = new Sprite(thumbStickTopTexture);
         bulletTexture = new Texture(Gdx.files.internal("Bullet.png"));
-        for(int i = 0; i < MAX_BULLETS; i++){
-        	bulletSprite[i] = new Sprite(bulletTexture);
-        }
-        for(int i = 0; i < MAX_DEAD; i++){
-        	for(int d = 0; d < 4; d++){
-	        	deadEnemySprite[i][d] = new Sprite(deadEnemyTexture[d]);
-	        	deadDraw[i][d] = false;
-        	}
-        }
+        healthBarTexture = new Texture(Gdx.files.internal("healthBarBack.png"));
+        healthbarFull = new Texture(Gdx.files.internal("HealthFull.png"));
         
         messageBoxTexture = new Texture(Gdx.files.internal("MessageBox.png"));
         menuButtonTexture = new Texture(Gdx.files.internal("menuButton.png"));
@@ -303,43 +282,40 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
         explosionTexture[0] = new Texture(Gdx.files.internal("explo0.png"));
         explosionTexture[1] = new Texture(Gdx.files.internal("explo1.png"));
         explosionTexture[2] = new Texture(Gdx.files.internal("explo2.png"));
+        
+        //Create sprites from textures
+        for(int i = 0; i < MAX_BULLETS; i++){
+        	bulletSprite[i] = new Sprite(bulletTexture);
+        }
+        for(int i = 0; i < MAX_DEAD; i++){
+        	for(int d = 0; d < 4; d++){
+	        	deadEnemySprite[i][d] = new Sprite(deadEnemyTexture[d]);
+	        	deadDraw[i][d] = false;
+        	}
+        }
+        
         for(int i = 0; i < MAX_EXPLOSION; i++){
 	        explosionSprite[i][0] = new Sprite(explosionTexture[0]);
 	        explosionSprite[i][1] = new Sprite(explosionTexture[1]);
 	        explosionSprite[i][2] = new Sprite(explosionTexture[2]);
         }
+        
         for(int i = 0; i < 4; i++){
         	menuSprite[i] = new Sprite(menuButtonTexture);
         }
+        
         for(int i = 0; i < 5; i++){
         	menuWritingSprite[i] = new Sprite(menuWritingTexture[i]);
         }
-        menuSprite[0].setBounds(0, height - height/3, width/3, height/3);
-        menuWritingSprite[0].setBounds(0, height - height/3, width/3, height/3);
-        menuSprite[1].setBounds(0, 0, width/3, height/3);
-        menuWritingSprite[1].setBounds(0, 0, width/3, height/3);
-        menuSprite[2].setBounds(width -width/3, height - height/3, width/3, height/3);
-        menuWritingSprite[2].setBounds(width -width/3, height - height/3, width/3, height/3);
-        menuSprite[3].setBounds(width - width/3, 0, width/3, height/3);
-        menuWritingSprite[3].setBounds(width - width/3, 0, width/3, height/3);
-        menuWritingSprite[4].setBounds(0, height/3, width, height/3);
         
         ammoBox = new Sprite(ammoBoxTexture);
         
+        thumbStickTop = new Sprite(thumbStickTopTexture);
         backButtonSprite = new Sprite(backButtonTexture);
         reloadButtonSprite = new Sprite(reloadButtonTexture);
-        healthBarTexture = new Texture(Gdx.files.internal("healthBarBack.png"));
-        healthbarFull = new Texture(Gdx.files.internal("HealthFull.png"));
         
         healthBarSprite = new Sprite(healthBarTexture);
         healthBarFSprite = new Sprite(healthbarFull);
-        
-     
-        healthBarSprite.setX(10);
-        healthBarSprite.setY(height - 50);
-        healthBarFSprite.setBounds(15,height - 45, Math.round(1.91*player.getHP()),height-38); //hardcoded numbers
-        
-        player.setCenter(width/2,height/2);
         
         for(int i= 0; i <5; i++){
         	playerSprite[i] = new Sprite(playerTextures[i]);
@@ -354,8 +330,6 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
         	settingMenuSprite[i] = new Sprite(settingMenu[i]);
         }
       
-      
-     
         //UpArrow
         arrowSprite[0] = new Sprite(arrowTexture);
         arrowSprite[0].setPosition(width/10,height/3 - height/20);
@@ -375,51 +349,38 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
         reloadButtonSprite.setBounds(3*width/16,0,width/8,width/8);
         //ThumbStick
 
-        
         thumbRight.setCenter(width - width/5, height/4);
         thumbRight.setSpriteThumb(new Sprite(thumbStickTopTexture),width);
         thumbRight.setSpriteBase(new Sprite(thumbStickBaseTexture),width);
-     
         thumbStickTop.setCenter(width - width/6, height/4);
+        
+        //Set Menu
+        menuSprite[0].setBounds(0, height - height/3, width/3, height/3);
+        menuWritingSprite[0].setBounds(0, height - height/3, width/3, height/3);
+        menuSprite[1].setBounds(0, 0, width/3, height/3);
+        menuWritingSprite[1].setBounds(0, 0, width/3, height/3);
+        menuSprite[2].setBounds(width -width/3, height - height/3, width/3, height/3);
+        menuWritingSprite[2].setBounds(width -width/3, height - height/3, width/3, height/3);
+        menuSprite[3].setBounds(width - width/3, 0, width/3, height/3);
+        menuWritingSprite[3].setBounds(width - width/3, 0, width/3, height/3);
+        menuWritingSprite[4].setBounds(0, height/3, width, height/3);
+        
+        healthBarSprite.setX(10);
+        healthBarSprite.setY(height - 50);
+        healthBarFSprite.setBounds(15,height - 45, Math.round(1.91*player.getHP()),height-38); //hardcoded numbers
+        
+        player.setCenter(width/2,height/2);
         
         messageBox.sprite = new Sprite(messageBoxTexture);
         messageBox.sprite.setCenter(width/2, height/5);
         messageBox.x = width/6;
         messageBox.y = height/3;
         
- 
-        
-        //Game Variables
-        
-
-        /*
-        InputMultiplexer im = new InputMultiplexer();
-        GestureDetector gd = new GestureDetector(this);
-        im.addProcessor(gd);
-        im.addProcessor(this);
-        */
-        
-        
         Gdx.input.setInputProcessor(this);
         Gdx.input.setCatchBackKey(true);
-        //availableA = Gdx.input.isPeripheralAvailable(Peripheral.Accelerometer);
+
         for(int i = 0; i < 5; i++){
         	touches.put(i,  new TouchInfo());
-        }
-    }
-    public void setTextures(int size){
-    	currentShotCount = 0;
-        
-		for(int i = 0; i < MAX_BULLETS; i++){
-        	bullets[i] = new Bullet();
-        }
-        for(int i = 0; i < MAX_EXPLOSION; i++){
-        	explosion[i] = new Explosion();
-        }
-        for(int i = 0; i < MAX_ENEMIES; i++){
-        	int random = (int) (Math.random()*4 + 1);
-        	enemy[i] = new Enemy(random);
-        	enemySprite[i] = new Sprite(enemyTexture[random]);
         }
     }
 
@@ -444,8 +405,7 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
         enemyTexture[0].dispose();
         
         healthBarTexture.dispose();
-        healthbarFull.dispose();
-        
+        healthbarFull.dispose();  
     }
 
     @Override
@@ -456,8 +416,11 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
     	batch.enableBlending();
     	firstIn = false;
     	if(menuChoice == 0){
+    		//Set and clear background
 	    	Gdx.gl.glClearColor(0, 0, 0, 0);
 	        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+	        
+	        //Set menu sprites
 	        menuSprite[0].setBounds(0, height - height/3, width/3, height/3);
 	        menuWritingSprite[0].setBounds(0, height - height/3, width/3, height/3);
 	        menuSprite[1].setBounds(0, 0, width/3, height/3);
@@ -467,45 +430,46 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 	        menuSprite[3].setBounds(width - width/3, 0, width/3, height/3);
 	        menuWritingSprite[3].setBounds(width - width/3, 0, width/3, height/3);
 	        menuWritingSprite[4].setBounds(0, height/3, width, height/3);
-		        for(int i = 0; i <4; i++){
-		        	menuSprite[i].draw(batch);
-		        	
-		        }
-		        for(int i = 0; i <5; i++){
-		        	menuWritingSprite[i].draw(batch);
-		        }
+	        //Draw Menu
+		    for(int i = 0; i <4; i++){
+		        menuSprite[i].draw(batch);
+		    }
+		    for(int i = 0; i <5; i++){
+	        	menuWritingSprite[i].draw(batch);
+	        }
+		    //Check for menu selection
+	    	for(int i = 0 ; i < 5; i ++){
+	    		if(touches.get(i).touched){
+	    			//Play
+    				if(inSquare(menuSprite[0].getX(), menuSprite[0].getWidth(),menuSprite[0].getY(),menuSprite[0].getHeight(), touches.get(i).touchX,touches.get(i).touchY)){
+    					menuChoice =  1;
+    				}
+    				//Tutorial
+    				if(inSquare(menuSprite[2].getX(), menuSprite[2].getWidth(),menuSprite[2].getY(),menuSprite[2].getHeight(), touches.get(i).touchX,touches.get(i).touchY)){
+    					menuChoice =  2;
+    				}
+    				//Settings
+    				if(inSquare(menuSprite[3].getX(), menuSprite[3].getWidth(),menuSprite[3].getY(),menuSprite[3].getHeight(), touches.get(i).touchX,touches.get(i).touchY)){
+    					menuChoice =  3;
+    				}
+    				//Scores
+    				if(inSquare(menuSprite[1].getX(), menuSprite[1].getWidth(),menuSprite[1].getY(),menuSprite[1].getHeight(), touches.get(i).touchX,touches.get(i).touchY)){
+    					menuChoice =  4;
+    				}
+	    		}
+	    	}
+	    	if(menuChoice != 0){
+		    	start = true;
+		    	firstIn = true;
 		    	for(int i = 0 ; i < 5; i ++){
-		    		if(touches.get(i).touched){
-		    				if(inSquare(menuSprite[0].getX(), menuSprite[0].getWidth(),menuSprite[0].getY(),menuSprite[0].getHeight(), touches.get(i).touchX,touches.get(i).touchY)){
-		    					menuChoice =  1;
-		    					
-		    				}
-		    				if(inSquare(menuSprite[2].getX(), menuSprite[2].getWidth(),menuSprite[2].getY(),menuSprite[2].getHeight(), touches.get(i).touchX,touches.get(i).touchY)){
-		    					menuChoice =  2;
-		    					
-		    				}
-		    				if(inSquare(menuSprite[3].getX(), menuSprite[3].getWidth(),menuSprite[3].getY(),menuSprite[3].getHeight(), touches.get(i).touchX,touches.get(i).touchY)){
-		    					menuChoice =  3;
-		    					
-		    				}
-		    				if(inSquare(menuSprite[1].getX(), menuSprite[1].getWidth(),menuSprite[1].getY(),menuSprite[1].getHeight(), touches.get(i).touchX,touches.get(i).touchY)){
-		    					menuChoice =  4;
-		    					
-		    				}
-		    		}
-		    		
+		    		touches.get(i).touched = false;
 		    	}
-		    	if(menuChoice != 0){
-			    	start = true;
-			    	firstIn = true;
-			    	for(int i = 0 ; i < 5; i ++){
-			    		touches.get(i).touched = false;
-			    	}
-		    	}
+	    	}
     	}
     	if(menuChoice == 2){
     		Gdx.gl.glClearColor(0, 0, 0, 0);
 	        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+	        
 	        if(drawSize == 1){
 	        	font.draw(batch, "Movement - Use ThumbStick provided in bottom right Corner", 0, 3*height/4);
 	        	font.draw(batch, "Shoot - Tap Point on Screen that is not a button", 0, 3*height/4 - font.getLineHeight()*2);
@@ -517,25 +481,26 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 	        	font.draw(batch, " before you start the second swipe!", 0, 3*height/4 - font.getLineHeight()*9);
 	        }
 	        else if(drawSize == 2){
-	        	font.draw(batch, "Movement - Use ThumbStick provided in bottom right Corner", 0, 3*height/4);
-	        	font.draw(batch, "Shoot - Tap Point on Screen that is not a button", 0, 3*height/4 - font.getLineHeight()*2);
-	        	font.draw(batch, "Reload - Press R Button", 0, 3*height/4 - font.getLineHeight()*4);
-	        	font.draw(batch, "OR - Use quick Swipe down followed by Swipe Off ", 0, 3*height/4 - font.getLineHeight()*5);
-	        	font.draw(batch, "Change Weapon - Either arrow Key", 0, 3*height/4 - font.getLineHeight()*6);
-	        	font.draw(batch, "OR - Use 2 quick swipes in the same direction ", 0, 3*height/4 - font.getLineHeight()*7);
-	        	font.draw(batch, "Gesture Note, You must remove your finger from the screen", 0, 3*height/4 - font.getLineHeight()*8);
-	        	font.draw(batch, " before you start the second swipe!", 0, 3*height/4 - font.getLineHeight()*9);
+	        	font2.draw(batch, "Movement - Use ThumbStick provided in bottom right Corner", 0, 3*height/4);
+	        	font2.draw(batch, "Shoot - Tap Point on Screen that is not a button", 0, 3*height/4 - font2.getLineHeight());
+	        	font2.draw(batch, "Reload - Press R Button", 0, 3*height/4 - font2.getLineHeight()*2);
+	        	font2.draw(batch, "OR - Use quick Swipe down followed by Swipe Off ", 0, 3*height/4 - font2.getLineHeight()*3);
+	        	font2.draw(batch, "Change Weapon - Either arrow Key", 0, 3*height/4 - font2.getLineHeight()*4);
+	        	font2.draw(batch, "OR - Use 2 quick swipes in the same direction ", 0, 3*height/4 - font2.getLineHeight()*5);
+	        	font2.draw(batch, "Gesture Note, You must remove your finger from the screen", 0, 3*height/4 - font2.getLineHeight()*6);
+	        	font2.draw(batch, " before you start the second swipe!", 0, 3*height/4 - font2.getLineHeight()*7);
 	        }
 	        else{
-	        	font.draw(batch, "Movement - Use ThumbStick provided in bottom right Corner", 0, 3*height/4);
-	        	font.draw(batch, "Shoot - Tap Point on Screen that is not a button", 0, 3*height/4 - font.getLineHeight()*2);
-	        	font.draw(batch, "Reload - Press R Button", 0, 3*height/4 - font.getLineHeight()*4);
-	        	font.draw(batch, "OR - Use quick Swipe down followed by Swipe Off ", 0, 3*height/4 - font.getLineHeight()*5);
-	        	font.draw(batch, "Change Weapon - Either arrow Key", 0, 3*height/4 - font.getLineHeight()*6);
-	        	font.draw(batch, "OR - Use 2 quick swipes in the same direction ", 0, 3*height/4 - font.getLineHeight()*7);
-	        	font.draw(batch, "Gesture Note, You must remove your finger from the screen", 0, 3*height/4 - font.getLineHeight()*8);
-	        	font.draw(batch, " before you start the second swipe!", 0, 3*height/4 - font.getLineHeight()*9);
+	        	font3.draw(batch, "Movement - Use ThumbStick provided in bottom right Corner", 0, 3*height/4);
+	        	font3.draw(batch, "Shoot - Tap Point on Screen that is not a button", 0, 3*height/4 - font3.getLineHeight());
+	        	font3.draw(batch, "Reload - Press R Button", 0, 3*height/4 - font3.getLineHeight()*2);
+	        	font3.draw(batch, "OR - Use quick Swipe down followed by Swipe Off ", 0, 3*height/4 - font3.getLineHeight()*3);
+	        	font3.draw(batch, "Change Weapon - Either arrow Key", 0, 3*height/4 - font3.getLineHeight()*4);
+	        	font3.draw(batch, "OR - Use 2 quick swipes in the same direction ", 0, 3*height/4 - font3.getLineHeight()*5);
+	        	font3.draw(batch, "Gesture Note, You must remove your finger from the screen", 0, 3*height/4 - font3.getLineHeight()*6);
+	        	font3.draw(batch, " before you start the second swipe!", 0, 3*height/4 - font3.getLineHeight()*7);
 	        }
+	        
 	        backButtonSprite.setBounds(4*width/5,0,width/5,height/4);
 	        menuWritingSprite[2].setBounds(width/3,3*height/4, width/3, height/3);
 	        menuSprite[2].setBounds(width/3,13*height/16, width/3, height/3);
@@ -543,6 +508,7 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 	        backButtonSprite.draw(batch);
 	        menuSprite[2].draw(batch);
 	        menuWritingSprite[2].draw(batch);
+	        
 	        for(int i = 0 ; i < 5; i ++){
 	    		if(touches.get(i).touched){
 			        if(inSquare(backButtonSprite.getX(), width/5,backButtonSprite.getY(),height/4, touches.get(i).touchX,touches.get(i).touchY)){
@@ -585,7 +551,6 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 		        }
 	        }
 	        
-	        
 	        settingMenuSprite[0].setBounds(0,4*height/7, width/4, height/5);
 	        settingMenuSprite[1].setBounds(width/3,4*height/7, width/8, height/5);
 	        settingMenuSprite[2].setBounds((3*width/4 - width/3)/2 + width/3,4*height/7, width/8, height/5);
@@ -620,62 +585,62 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 	        
 	        for(int i = 0 ; i < 5; i ++){
 	    		if(touches.get(i).touched){
-	    				if(inSquare(backButtonSprite.getX(), width/5,backButtonSprite.getY(),height/4, touches.get(i).touchX,touches.get(i).touchY)){
-	    					menuChoice = 0;
-	    					touches.get(i).touched = false;
-	    					
-	    					if(drawChoice == 6){
-	    			        	drawSize = 2;
-	    			        }
-	    			        else if(drawChoice == 5){
-	    			        	drawSize = 1;
-	    			        }
-	    			        else{
-	    			        	drawSize = 3;
-	    			        }
-	    			        
-	    			        if(enemyChoice == 1){
-	    			        	maxEnemy = 10;
-	    			        }
-	    			        else if(enemyChoice == 3){
-	    			        	maxEnemy = 30;
-	    			        }
-	    			        else{
-	    			        	maxEnemy = 20;
-	    			        }
-	    			        
-	    			        if(buttonChoice == 9){
-	    			        	drawButton = true;
-	    			        }
-	    			        else{
-	    			        	drawButton = false;
-	    			        }
-	    					setSettings(drawSize,drawButton,maxEnemy);
-	    					try {
-	    		        	    Thread.sleep(3000);                 //1000 milliseconds is one second.
-	    		        	} catch(InterruptedException ex) {
-	    		        	    Thread.currentThread().interrupt();
-	    		        	}
-	    					
-	    				}
+    				if(inSquare(backButtonSprite.getX(), width/5,backButtonSprite.getY(),height/4, touches.get(i).touchX,touches.get(i).touchY)){
+    					menuChoice = 0;
+    					touches.get(i).touched = false;
+    					
+    					if(drawChoice == 6){
+    			        	drawSize = 2;
+    			        }
+    			        else if(drawChoice == 5){
+    			        	drawSize = 1;
+    			        }
+    			        else{
+    			        	drawSize = 3;
+    			        }
+    			        
+    			        if(enemyChoice == 1){
+    			        	maxEnemy = 10;
+    			        }
+    			        else if(enemyChoice == 3){
+    			        	maxEnemy = 30;
+    			        }
+    			        else{
+    			        	maxEnemy = 20;
+    			        }
+    			        
+    			        if(buttonChoice == 9){
+    			        	drawButton = true;
+    			        }
+    			        else{
+    			        	drawButton = false;
+    			        }
+    					setSettings(drawSize,drawButton,maxEnemy);
+    					
+    					try {
+    		        	    Thread.sleep(3000);                 //1000 milliseconds is one second.
+    		        	} catch(InterruptedException ex) {
+    		        	    Thread.currentThread().interrupt();
+    		        	}
+    				}
 	    				
-	    				for(int b = 1; b < 4;b++){
-	    					if(inSquare(settingMenuSprite[b].getBoundingRectangle(),touches.get(i).touchX,touches.get(i).touchY)){
-	    						enemyChoice = b;
-	    					}
-	    				}
-	    				
-	    				for(int b = 5; b < 8;b++){
-	    					if(inSquare(settingMenuSprite[b].getBoundingRectangle(),touches.get(i).touchX,touches.get(i).touchY)){
-	    						drawChoice = b;
-	    					}
-	    				}
-	    				
-	    				for(int b = 9; b < 11;b++){
-	    					if(inSquare(settingMenuSprite[b].getBoundingRectangle(),touches.get(i).touchX,touches.get(i).touchY)){
-	    						buttonChoice = b;
-	    					}
-	    				}	
+    				for(int b = 1; b < 4;b++){
+    					if(inSquare(settingMenuSprite[b].getBoundingRectangle(),touches.get(i).touchX,touches.get(i).touchY)){
+    						enemyChoice = b;
+    					}
+    				}
+    				
+    				for(int b = 5; b < 8;b++){
+    					if(inSquare(settingMenuSprite[b].getBoundingRectangle(),touches.get(i).touchX,touches.get(i).touchY)){
+    						drawChoice = b;
+    					}
+    				}
+    				
+    				for(int b = 9; b < 11;b++){
+    					if(inSquare(settingMenuSprite[b].getBoundingRectangle(),touches.get(i).touchX,touches.get(i).touchY)){
+    						buttonChoice = b;
+    					}
+    				}	
 	    		}
 	    	}  
     	}
@@ -702,17 +667,14 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 	        menuSprite[1].draw(batch);
 	        menuWritingSprite[1].draw(batch);
 	        
-	        
 	        for(int i = 0 ; i < 5; i ++){
 	    		if(touches.get(i).touched){
-	    				if(inSquare(backButtonSprite.getX(), width/5,backButtonSprite.getY(),height/4, touches.get(i).touchX,touches.get(i).touchY)){
-	    					menuChoice = 0;
-	    					touches.get(i).touched = false;
-	    				}	
+    				if(inSquare(backButtonSprite.getX(), width/5,backButtonSprite.getY(),height/4, touches.get(i).touchX,touches.get(i).touchY)){
+    					menuChoice = 0;
+    					touches.get(i).touched = false;
+    				}	
 	    		}
-	    		
-	    	}
-	        
+	    	} 
     	}
     	//GAME
     	if(menuChoice == 1){
@@ -729,13 +691,16 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
     		    ammoBoxItem.spawn(gameMap.getX(), gameMap.getY(), gameMap.mapSprite.getWidth(), gameMap.mapSprite.getHeight(),0);
     		    ammoBox.setCenter(ammoBoxItem.getX(),ammoBoxItem.getY());
     		    player.setCenter(width/2,height/2);
+    		    
     		    for(int i = 0; i < 4; i++){
     		    	playerSprite[i].setOriginCenter();
         		    playerSprite[i].setCenter(width/2,height/2);
     		    }
+    		    
     		    for(int i = 0; i < 4; i++){
     		    	weaponClip[i] = player.weaponArray[i].getClipSize();
     		    }
+    		    
     		    currentClip = player.weaponArray[player.selectedItem].getClipSize();
     		    player.setMap(gameMap.mapSprite.getWidth()/2 + playerSprite[4].getWidth()/2,gameMap.mapSprite.getHeight()/2 + playerSprite[4].getHeight()/2);
     		    
@@ -764,7 +729,6 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
     	        thumbRight.setCenter(width - width/5, height/4);
     	        thumbStickTop.setCenter(width - width/5, height/4);
     	        start = false;
-    	        
     		}
     		
 	        Gdx.gl.glClearColor(0, 0, 0, 0);
@@ -780,69 +744,40 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 	        	}
 	        }
 	        
-	        //input
-	        /*
-	        if(availableA){
-		        accelX = Gdx.input.getAccelerometerX();
-		        accelY = Gdx.input.getAccelerometerY();
-		        accelZ = Gdx.input.getAccelerometerZ();
-	        }
-	        if(accelZ < 0 && halfStompTime == 0){
-	        	halfStompTime = System.nanoTime();
-	        	halfStomp = true;
-	        }
-	        if((System.nanoTime() - halfStompTime) > 500000000){
-	        	halfStomp = false;
-	        	stompKill = false;
-	        	halfStompTime = 0;
-	        }
-	        if(halfStomp == true && (System.nanoTime() - halfStompTime) < 500000000 && accelZ > 4){
-	        	stompKill = true;
-	        }
-	        */
-	        
-	        //Deal With Input
 	        for(int t = 0; t < 5;t++){
 	        	if(touches.get(t).touched){
-	        		
 	        		if(touches.get(t).purpose == 0 &&  player.currentWeapon.getName() == "Machine Gun" && touches.get(t).touchTime() > 500000000 && touches.get(t).dragged == false){
 	        			touches.get(t).purpose = 6;
 	        		}
-	        		
 	        		if(touches.get(t).purpose == 2 ){
-	        			
-	        				
 	        			if(gameMap.nextStepCheck(player.getX() + thumbRight.getDifX()*moveSpeed, player.getY() + thumbRight.getDifY()*moveSpeed,playerSprite[4].getWidth(),playerSprite[4].getHeight())){
-		        			
-		        				for(int c = 0; c < maxEnemy; c++){
-			        				if(enemy[c].alive()){
-			        					enemy[c].shiftHorizontal(thumbRight.getDifX(), moveSpeed);
-			        					enemy[c].shiftVertical(thumbRight.getDifY(), moveSpeed);
-			        				}
-			        			}
-			        			for(int c = 0; c < MAX_EXPLOSION; c++){
-			        				if(explosion[c].exists == true){
-			        					explosion[c].shiftHorizontal(thumbRight.getDifX(), moveSpeed);	
-			        					explosion[c].shiftVertical(thumbRight.getDifY(), moveSpeed);
-			        				}
-			        			}
-			        			for(int d = 0; d < MAX_DEAD; d++){
-			        				for(int c = 0; c < 4; c++){
-				        				if(deadDraw[d][c]){
-				        					deadEnemySprite[d][c].translateX(thumbRight.getDifX()*moveSpeed);
-				        					deadEnemySprite[d][c].translateY(thumbRight.getDifY()*moveSpeed);
-				        				}
-			        				}
-			        			}
-			        			gameMap.shiftMapX(thumbRight.getDifX(), moveSpeed);
-			        			gameMap.shiftMapY(thumbRight.getDifY(), moveSpeed);
-			        			player.shiftX(thumbRight.getDifX(), moveSpeed);
-			        			player.shiftY(thumbRight.getDifY(), moveSpeed);
-			        			ammoBoxItem.shiftHorizontal(thumbRight.getDifX(), moveSpeed);
-			        			ammoBoxItem.shiftVertical(thumbRight.getDifY(), moveSpeed);
-			        			
+	        				for(int c = 0; c < maxEnemy; c++){
+		        				if(enemy[c].alive()){
+		        					enemy[c].shiftHorizontal(thumbRight.getDifX(), moveSpeed);
+		        					enemy[c].shiftVertical(thumbRight.getDifY(), moveSpeed);
+		        				}
 		        			}
-	        			
+		        			for(int c = 0; c < MAX_EXPLOSION; c++){
+		        				if(explosion[c].exists == true){
+		        					explosion[c].shiftHorizontal(thumbRight.getDifX(), moveSpeed);	
+		        					explosion[c].shiftVertical(thumbRight.getDifY(), moveSpeed);
+		        				}
+		        			}
+		        			for(int d = 0; d < MAX_DEAD; d++){
+		        				for(int c = 0; c < 4; c++){
+			        				if(deadDraw[d][c]){
+			        					deadEnemySprite[d][c].translateX(thumbRight.getDifX()*moveSpeed);
+			        					deadEnemySprite[d][c].translateY(thumbRight.getDifY()*moveSpeed);
+			        				}
+		        				}
+		        			}
+		        			gameMap.shiftMapX(thumbRight.getDifX(), moveSpeed);
+		        			gameMap.shiftMapY(thumbRight.getDifY(), moveSpeed);
+		        			player.shiftX(thumbRight.getDifX(), moveSpeed);
+		        			player.shiftY(thumbRight.getDifY(), moveSpeed);
+		        			ammoBoxItem.shiftHorizontal(thumbRight.getDifX(), moveSpeed);
+		        			ammoBoxItem.shiftVertical(thumbRight.getDifY(), moveSpeed);
+		        		}
 	        		}
 	        		if(Math.sqrt(Math.pow(thumbRight.getThumbX() - thumbRight.getCenterX() ,2) + Math.pow((thumbRight.getThumbY() - thumbRight.getCenterY()),2)) > (thumbRight.getSpriteBase().getWidth()/2) + thumbRight.getSpriteThumb().getWidth()/2){
 	        			thumbRight.reset();
@@ -864,10 +799,9 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 	            			currentClip -= 1;
 	            		}	
 	    			}
-	        		
 	        	}
 	        }
-	        
+
 	        //update
 	        //Bullets
 	        //outer C to allow the bullet to update 
@@ -886,7 +820,6 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 		        			}
 			    			bullets[i].reset();
 			        	}
-		        	
 			        	for(int e = 0; e < maxEnemy; e++){
 			        		if(enemy[e].alive()){
 			        			if(inSquare(enemySprite[e].getBoundingRectangle(),bullets[i].getX(),bullets[i].getY())&& bullets[i].hasBeenShot() == true) {
@@ -920,7 +853,6 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 		        		if(distance(enemy[i].getX(),explosion[c].getX(),enemy[i].getY(),explosion[c].getY()) < explosion[c].getRadius()){
 		        			kills += 1;
 		        			enemy[i].alive = false;
-		        			
 		        		}
 	        		}
 	        	}
@@ -1006,14 +938,11 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 	        		if(distance(width/2,explosion[r].getX(),height/2,explosion[r].getY()) < explosion[r].getRadius()){
 	        			player.hit();
 	        		}
-	        		
 					explosion[r].continueExplode(false,explosionSprite[r][explosion[r].getNextExplosionSprite()].getWidth()/2);	
 					explosionSprite[r][explosion[r].getNextExplosionSprite()].setCenter(explosion[r].getX(), explosion[r].getY());
 					explosionSprite[r][explosion[r].getNextExplosionSprite()].draw(batch);
 				}
-				
 			}
-	        
 	        if(currentShotCoolDown > 0){
 	        	currentShotCoolDown -= 1;
 	        }
@@ -1044,10 +973,8 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 			        else{
 			        	font3.draw(batch, "Reloading!", width/2-width/30, height - font3.getLineHeight()*2);
 			        }
-
 	        	}
 	        }
-
 	        if(drawSize == 1){
 	        	font.draw(batch,"Kills: " + kills,width/2 - width/30,height);
 		        font.draw(batch,"Gun: " + player.returnWeapon().getName(),width/2 - width/30,height - font.getLineHeight());
@@ -1094,25 +1021,7 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 	        //UI Draw
 	        healthBarSprite.draw(batch);
 	        healthBarFSprite.draw(batch);
-	        
 
-	        /*
-	        if(availableA){
-	        	font.draw(batch, accelX + ", " + accelY + "," + accelZ, 0, height - height/20);
-	        }
-	        if(messageBox.displayTime + messageBox.startTime  > System.nanoTime() && messageBox.displayTime + messageBox.startTime != 0){
-	        	messageBox.sprite.draw(batch);
-	        	font.draw(batch, messageBox.message, messageBox.x + width/10, messageBox.y + messageBox.height/2);
-	        	
-	        }
-	        if(messageBox.displayTime + messageBox.startTime  < System.nanoTime()){
-	        	messageBox.reset();
-	        }
-	        */
-	        
-	        
-	        
-	        
 	        if(player.getRotation() != 0){
 	        	for(int i = 0; i < 4; i++){
 	        		playerSprite[i].setCenter(width/2,height/2);
@@ -1131,8 +1040,6 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 	        thumbStickTop.setBounds(thumbRight.getThumbX()- thumbRight.getTRadius(), thumbRight.getThumbY()- thumbRight.getTRadius(), thumbRight.getTRadius()*2, thumbRight.getTRadius()*2);
 	        thumbStickTop.draw(batch);
 
-	        
-	 
 	        if(player.getHP() < 0){
 	        	setHighScore(kills);
 	        	menuChoice = 0;
@@ -1147,11 +1054,7 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
     	batch.end();
    }
 
-    
-
-	@Override
 	public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-
 		if(pointer < 5){
             touches.get(pointer).touchX = screenX;
             touches.get(pointer).touchY = Math.abs(screenY - height);
@@ -1161,7 +1064,6 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
             touches.get(pointer).dragged = false;
             touches.get(pointer).touchedStart = System.nanoTime();
             
-
             if(distance(touches.get(pointer).touchX, thumbRight.getThumbX(),touches.get(pointer).touchY,thumbRight.getThumbY()) < (thumbRight.getSpriteThumb().getWidth()/2) && menuChoice != 0){
 	            	thumbRight.setThumb(screenX,Math.abs(screenY - height));
 	            	touches.get(pointer).purpose = 2;
@@ -1177,7 +1079,6 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
             }
             
         }
-		
         return true;
 	}
 
@@ -1286,8 +1187,6 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 			touches.get(pointer).touchX = screenX;
 			touches.get(pointer).touchY = screenY;
 			
-			
-
 			if(touches.get(pointer).purpose == 2){
 				thumbRight.setThumb(screenX, screenY);
 				if(thumbRight.offThumb(screenX, screenY)){
@@ -1300,7 +1199,6 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 		            touches.get(pointer).purpose = 0;
 				};
 			}
-			
 			
 			if((Math.abs(swipeXLength) > width/6 || Math.abs(swipeYLength) > width/6) && touches.get(pointer).purpose == 0){
 				if(Math.abs(swipeXLength)< Math.abs(swipeYLength) && reload == false  ){
@@ -1383,9 +1281,6 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 		}
 		return false;
 	}
-	
-	
-	
 
 	@Override
 	public boolean mouseMoved(int screenX, int screenY) {
@@ -1398,9 +1293,6 @@ public class DaysGoneBy implements ApplicationListener, InputProcessor, GestureL
 		// TODO Auto-generated method stub
 		return false;
 	}
-
-	
-	
 
 	@Override
 	public boolean tap(float x, float y, int count, int button) {
